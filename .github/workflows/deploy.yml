@@ -1,25 +1,38 @@
-name: Deploy to EC2
+name: CI/CD Pipeline
 
 on:
   push:
     branches:
-      - main
+      - main  # Define the branch to trigger the workflow
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2  # Action to checkout your repository
 
-      - name: Install SSH Key
-        uses: webfactory/ssh-agent@v0.5.4
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2  # Action to set up PHP environment
         with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+          php-version: '8.3'  # Specify the PHP version you need
 
-      - name: Deploy to EC2
+      - name: Install Composer dependencies
+        run: composer install --no-ansi --no-interaction --no-progress --optimize-autoloader  # Install PHP dependencies using Composer
+
+      - name: Run PHPUnit tests
+        run: vendor/bin/phpunit  # Execute PHPUnit tests, adjust path if necessary
+
+      - name: Deploy to AWS EC2
         run: |
-          scp -i ${{ secrets.SSH_PRIVATE_KEY }} -r  ubuntu@ec2-15-207-249-244.ap-south-1.compute.amazonaws.com:/var/www/html
-          ssh -i ${{ secrets.SSH_PRIVATE_KEY }} ubuntu@ec2-15-207-249-244.ap-south-1.compute.amazonaws.com 'sudo systemctl reload nginx'
-  
+          ssh -o StrictHostKeyChecking=no ubuntu@15.207.249.244 'cd /var/www/html && git pull origin main'  # Example deployment script using SSH
+
+      - name: Notify deployment success
+        if: success()
+        run: echo "Deployment to AWS EC2 succeeded!"
+
+      - name: Notify deployment failure
+        if: failure()
+        run: echo "Deployment to AWS EC2 failed."
+
