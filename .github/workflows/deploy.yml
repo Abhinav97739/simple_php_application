@@ -13,6 +13,13 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v2
 
+      - name: Install SSH Key
+        uses: webfactory/ssh-agent@v0.5.4
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
       - name: Deploy to EC2
         run: |
-          ./deploy.sh
+          scp -i ${{ secrets.SSH_PRIVATE_KEY }} -r . ubuntu@ec2-15-207-249-244.ap-south-1.compute.amazonaws.com:/var/www/html
+          ssh -i ${{ secrets.SSH_PRIVATE_KEY }} ubuntu@ec2-15-207-249-244.ap-south-1.compute.amazonaws.com 'sudo systemctl reload nginx'
+  
