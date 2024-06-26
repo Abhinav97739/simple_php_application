@@ -1,49 +1,24 @@
-name: CI/CD Pipeline
+name: Deploy to EC2
 
 on:
   push:
     branches:
-      - main  # Change this to your main branch name
-
+      - main
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-
-      - name: Set up PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.0'  # Adjust PHP version as needed
-
-      - name: Install dependencies
-        run: |
-          composer install --no-interaction --prefer-dist
-
-      - name: Run PHPUnit tests
-        run: vendor/bin/phpunit --configuration phpunit.xml
-
   deploy:
     runs-on: ubuntu-latest
-    needs: build
-    if: github.ref == 'refs/heads/main'  # Deploy only on main branch
 
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v2
 
-      - name: Deploy to EC2 instance
-        uses: easingthemes/ssh-deploy@v2.1.1
+      - name: Install SSH Key
+        uses: webfactory/ssh-agent@v0.5.4
         with:
-          server: ${{ secrets.EC2_SERVER }}  # EC2 instance public IP or hostname
-          username: ${{ secrets.EC2_USERNAME }}  # SSH username for EC2 instance
-          key: ${{ secrets.EC2_PRIVATE_KEY }}  # SSH private key for authentication
-          source: "."  # Source directory or files to copy to the EC2 instance
-          target: "/var/www/html"  # Target directory on the EC2 instance
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      # - name: SSH Command
-      #   run: ssh -i ${{ secrets.EC2_PRIVATE_KEY }} ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_SERVER }} "cd /var/www/html && ls -la"
-
+      - name: Deploy to EC2
+        run: |
+          scp -i ${{ secrets.SSH_PRIVATE_KEY }} -r . ubuntu@ec2-public-ip:/var/www/html
+          ssh -i ${{ secrets.SSH_PRIVATE_KEY }} ubuntu@ec2-public-ip 'sudo systemctl reload nginx'
