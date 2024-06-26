@@ -44,6 +44,6 @@ jobs:
           source: "."  # Source directory or files to copy to the EC2 instance
           target: "/var/www/html"  # Target directory on the EC2 instance
 
-      - name: SSH Command
-        run: ssh -i ${{ secrets.EC2_PRIVATE_KEY }} ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_SERVER }} "cd /var/www/html && ls -la"
+      # - name: SSH Command
+      #   run: ssh -i ${{ secrets.EC2_PRIVATE_KEY }} ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_SERVER }} "cd /var/www/html && ls -la"
 
