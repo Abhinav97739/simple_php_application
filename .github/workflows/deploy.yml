@@ -1,4 +1,4 @@
-name: Deploy to AWS EC2
+name: CI/CD Pipeline for PHP
 
 on:
   push:
@@ -10,16 +10,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: SSH into EC2 Instance
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USERNAME }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        script: |
-          cd /var/www/html
-          git pull origin main
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
+    - name: Set up SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-    # - name: Invalidate CloudFront cache (if using)
-    #   run: aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"
+    - name: Sync files to EC2
+      run: |
+        rsync -avz --delete -e "ssh -i ~/.ssh/id_rsa" ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/var/www/html/
+
+    - name: Restart Nginx
+      run: |
+        ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} 'sudo systemctl restart nginx'
